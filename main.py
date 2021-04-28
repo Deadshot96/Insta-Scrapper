@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import ChromeOptions, Chrome
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
@@ -68,6 +68,14 @@ class Instagram(object):
 
         return False
 
+    def is_story_loaded(self, driver):
+        try:
+            driver.find_element(By.CLASS_NAME, "coreSpriteRightChevron")
+        except NoSuchElementException as e:
+            return False
+
+        return True
+
 
     def get_user(self):
         # host_user = input("Enter username to scrap: ")
@@ -75,7 +83,41 @@ class Instagram(object):
         self.host_url = self.url + user + "/"
 
         self.driver.get(self.host_url)
+        self.dirpath = os.path.join(os.getcwd(), user)
 
+        if os.path.exists(self.dirpath):
+            os.mkdir(self.dirpath)
+
+    def get_stories(self):
+        stories = self.driver.find_elements_by_xpath("//div[@aria-label='Open Stories']")
+        
+        if len(stories):
+            stories[0].click()
+
+        print(len(stories))
+        self.wait.until(self.is_story_loaded)
+
+        rightDrag = self.driver.find_element_by_class_name("coreSpriteRightChevron")
+
+        try:
+            while True:
+                soup = BeautifulSoup(self.driver.page_source, "html.parser")
+                imgs = soup.findAll(lambda tag: tag.name == "img" and tag.has_attr("srcset"))
+
+                for img in imgs:
+                    imgsrc = img.attr["srcset"].split(",")[0]
+                    
+                    if len(self.stories) > self.maxStoryDownloads:
+                        return 
+
+                    if imgsrc not in self.stories:
+                        self.stories.append(imgsrc) 
+
+                rightDrag.click()
+                time.sleep(0.5)
+        
+        except StaleElementReferenceException as e:
+            print(e.message)
 
     def __del__(self):
         self.driver.quit()
