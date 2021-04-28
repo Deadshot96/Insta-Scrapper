@@ -104,11 +104,11 @@ class Instagram(object):
             os.mkdir(os.path.join(self.dirpath, "stories"))
 
         self.get_stories()
-        # self.get_images()
+        self.get_images()
 
-        # self.get_names(self.images, "images")
-        # with ThreadPoolExecutor() as executor:
-        #     executor.map(self.get_imgs, self.names)
+        self.get_names(self.images, "images")
+        with ThreadPoolExecutor() as executor:
+            executor.map(self.get_imgs, self.names)
 
 
         self.get_names(self.stories, "stories")
