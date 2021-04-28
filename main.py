@@ -27,6 +27,7 @@ class Instagram(object):
         self.stories = list()
         self.images = list()
         self.carousellist = list()
+        self.carouseloffset = 0
 
         self.driver_init()
 
@@ -118,6 +119,42 @@ class Instagram(object):
         
         except StaleElementReferenceException as e:
             print(e.message)
+
+    def get_images(self):
+        self.driver.get(self.host_url)
+        time.sleep(2)
+
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        while len(self.images) <= self.maxImgDownloads:
+            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            imgs = soup.findAll(lambda tag: tag.name == "img" and tag.has_attr("srcset"))
+
+            for img in imgs:
+                linkParent = img.find_parent(lambda tag: tag.name == "a")
+                numChildren = len([child for child in linkParent.children])
+
+                if numChildren == 1:
+                    imgsrc = img.attrs["srcset"].split(",")[-1]
+                    if imgsrc not in self.downloadlist:
+                        self.downloadlist.append(imgsrc)
+                else:
+                    newLink = linkParent.attrs["href"]
+                    for index, link in self.carousellist:
+                        if link == newLink:
+                            break
+                    else:
+                        self.carousellist.append((len(self.downloadlist), newLink))
+
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(4)
+            # WebDriverWait(self.driver, 3)
+
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if last_height == new_height:
+                break
+
+            last_height = new_height
+            
 
     def __del__(self):
         self.driver.quit()
