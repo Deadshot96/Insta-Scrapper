@@ -20,8 +20,8 @@ class Instagram(object):
         self.response = None
         self.chrome_path = os.path.abspath("chromedriver.exe")
         self.wait = None
-        self.maxImgDownloads = 0
-        self.maxStoryDownloads = 0
+        self.maxImgDownloads = 1000
+        self.maxStoryDownloads = 1000
         self.url = "https://www.instagram.com/"
         self.host_url = ""
         self.stories = list()
@@ -69,12 +69,18 @@ class Instagram(object):
 
         return False
 
-    def is_story_loaded(self, driver):
+    def is_right_loaded(self, driver):
         try:
             driver.find_element(By.CLASS_NAME, "coreSpriteRightChevron")
         except NoSuchElementException as e:
             return False
+        return True
 
+    def is_stories_loaded(self, driver):
+        try:
+            driver.find_element(By.XPATH, "//div[@aria-label='Open Stories']")
+        except NoSuchElementException as e:
+            return False
         return True
 
 
@@ -84,29 +90,34 @@ class Instagram(object):
         self.host_url = self.url + user + "/"
 
         self.driver.get(self.host_url)
-        self.dirpath = os.path.join(os.getcwd(), user)
+        # self.dirpath = os.path.join(os.getcwd(), user)
 
-        if os.path.exists(self.dirpath):
-            os.mkdir(self.dirpath)
+        # if os.path.exists(self.dirpath):
+        #     os.mkdir(self.dirpath)
+
+        self.get_stories()
+
 
     def get_stories(self):
+        
+        self.wait.until(self.is_stories_loaded)
         stories = self.driver.find_elements_by_xpath("//div[@aria-label='Open Stories']")
         
         if len(stories):
             stories[0].click()
-
         print(len(stories))
-        self.wait.until(self.is_story_loaded)
-
+        
+        self.wait.until(self.is_right_loaded)
         rightDrag = self.driver.find_element_by_class_name("coreSpriteRightChevron")
 
         try:
             while True:
                 soup = BeautifulSoup(self.driver.page_source, "html.parser")
                 imgs = soup.findAll(lambda tag: tag.name == "img" and tag.has_attr("srcset"))
-
+                print("Images: ", len(imgs))
                 for img in imgs:
-                    imgsrc = img.attr["srcset"].split(",")[0]
+                    # print(img)
+                    imgsrc = img.attrs["srcset"].split(",")[0]
                     
                     if len(self.stories) > self.maxStoryDownloads:
                         return 
@@ -136,7 +147,7 @@ class Instagram(object):
                 if numChildren == 1:
                     imgsrc = img.attrs["srcset"].split(",")[-1]
                     if imgsrc not in self.downloadlist:
-                        self.downloadlist.append(imgsrc)
+                        self.images.append(imgsrc)
                 else:
                     newLink = linkParent.attrs["href"]
                     for index, link in self.carousellist:
@@ -154,7 +165,40 @@ class Instagram(object):
                 break
 
             last_height = new_height
-            
+
+    def get_carousel_imgs(self, links):
+        index, link = links
+        imgLinks = list()
+
+        url = self.url[-1] + link
+        self.driver.get(url)
+
+        time.sleep(2)
+
+        try:
+            while True:
+                X.driver.find_element_by_class_name("coreSpriteRightChevron").click()
+                time.sleep(0.6)
+                soup = BeautifulSoup(self.driver.page_source, "html.parser")
+                imgs = soup.findAll(lambda tag: tag.name == "img" and tag.has_attr("srcset"))
+
+                for img in imgs:
+                    parents = img.find_parents(lambda tag: tag.name == "li")
+                    
+                    if len(parents) > 0:
+                        imgsrc = img.attrs["srcset"].split(",")[-1]
+                        if imgsrc not in imgLinks:
+                            imgLinks.append(imgsrc)
+
+        except StaleElementReferenceException as e:
+            print("Done with Carousel")
+
+        for i in range(len(imgLinks) - 1, -1, -1):
+            self.images.insert(self.carouseloffset + index, imgLinks[i])
+
+        self.carouseloffset += len(imgLinks)
+        print(f"Added {len(imgLinks)} arguments.")
+
 
     def __del__(self):
         self.driver.quit()
