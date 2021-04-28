@@ -27,6 +27,7 @@ class Instagram(object):
         self.stories = list()
         self.images = list()
         self.carousellist = list()
+        self.names = list()
         self.carouseloffset = 0
 
         self.driver_init()
@@ -37,7 +38,7 @@ class Instagram(object):
     
         self.driver = Chrome(executable_path=self.chrome_path, options=self.chrome_options)
 
-        self.wait = WebDriverWait(self.driver, 10)
+        self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=1)
 
     def login(self):
         # username = input("Input Username: ")
@@ -56,8 +57,8 @@ class Instagram(object):
             if button.text.lower() == "log in":
                 button.click()
 
-        # time.sleep(4)
-        self.wait.until(method=self.is_insta_loaded)
+        time.sleep(4)
+        # self.wait.until(method=self.is_insta_loaded)
         self.get_user()
 
     def is_insta_loaded(self, driver):
@@ -90,17 +91,55 @@ class Instagram(object):
         self.host_url = self.url + user + "/"
 
         self.driver.get(self.host_url)
-        # self.dirpath = os.path.join(os.getcwd(), user)
+        time.sleep(4)
+        self.dirpath = os.path.join(os.getcwd(), user)
 
-        # if os.path.exists(self.dirpath):
-        #     os.mkdir(self.dirpath)
+        if not os.path.exists(self.dirpath):
+            os.mkdir(self.dirpath)
+        
+        if not os.path.exists(os.path.join(self.dirpath, "images")):
+            os.mkdir(os.path.join(self.dirpath, "images"))
+        
+        if not os.path.exists(os.path.join(self.dirpath, "stories")):
+            os.mkdir(os.path.join(self.dirpath, "stories"))
 
         self.get_stories()
+        # self.get_images()
+
+        # self.get_names(self.images, "images")
+        # with ThreadPoolExecutor() as executor:
+        #     executor.map(self.get_imgs, self.names)
+
+
+        self.get_names(self.stories, "stories")
+        with ThreadPoolExecutor() as executor:
+            executor.map(self.get_imgs, self.names)
+
+    def get_imgs(self, img_info):
+        img_name, img_url = img_info
+        try:
+            img_bytes = get(img_url).content
+        except:
+            return
+
+        with open(img_name, "wb") as file:
+            file.write(img_bytes)
+
+        print(f"{img_name} is downloaded ...")
+
+        
+    def get_names(self, imgList, name):
+        self.names.clear()
+        os.chdir(os.path.join(self.dirpath, name))
+        for num, link in enumerate(imgList):
+            filename = f"{num + 1}.jpg"
+            self.names.append((filename, link))
 
 
     def get_stories(self):
         
         self.wait.until(self.is_stories_loaded)
+        # time.sleep(3)
         stories = self.driver.find_elements_by_xpath("//div[@aria-label='Open Stories']")
         
         if len(stories):
@@ -128,12 +167,12 @@ class Instagram(object):
                 rightDrag.click()
                 time.sleep(0.5)
         
-        except StaleElementReferenceException as e:
-            print(e.message)
+        except:
+            print("Got Stories")
 
     def get_images(self):
         self.driver.get(self.host_url)
-        time.sleep(2)
+        time.sleep(4)
 
         last_height = self.driver.execute_script("return document.body.scrollHeight")
         while len(self.images) <= self.maxImgDownloads:
@@ -146,7 +185,7 @@ class Instagram(object):
 
                 if numChildren == 1:
                     imgsrc = img.attrs["srcset"].split(",")[-1]
-                    if imgsrc not in self.downloadlist:
+                    if imgsrc not in self.images:
                         self.images.append(imgsrc)
                 else:
                     newLink = linkParent.attrs["href"]
@@ -154,23 +193,25 @@ class Instagram(object):
                         if link == newLink:
                             break
                     else:
-                        self.carousellist.append((len(self.downloadlist), newLink))
+                        self.carousellist.append((len(self.images), newLink))
 
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(4)
-            # WebDriverWait(self.driver, 3)
-
+            
             new_height = self.driver.execute_script("return document.body.scrollHeight")
             if last_height == new_height:
                 break
 
             last_height = new_height
 
+        for x in self.carousellist:
+            self.get_carousel_imgs(x)
+
     def get_carousel_imgs(self, links):
         index, link = links
         imgLinks = list()
 
-        url = self.url[-1] + link
+        url = self.url[:-1] + link
         self.driver.get(url)
 
         time.sleep(2)
@@ -190,7 +231,7 @@ class Instagram(object):
                         if imgsrc not in imgLinks:
                             imgLinks.append(imgsrc)
 
-        except StaleElementReferenceException as e:
+        except:
             print("Done with Carousel")
 
         for i in range(len(imgLinks) - 1, -1, -1):
@@ -200,8 +241,8 @@ class Instagram(object):
         print(f"Added {len(imgLinks)} arguments.")
 
 
-    def __del__(self):
-        self.driver.quit()
+    # def __del__(self):
+    #     self.driver.quit()
 
 X = Instagram()
 X.login()
