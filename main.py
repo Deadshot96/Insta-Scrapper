@@ -41,11 +41,8 @@ class Instagram(object):
         self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=1)
 
     def login(self):
-        # username = input("Input Username: ")
-        # password = getpass(prompt="Enter Password: ")
-        
-        username = "2maharathikarna@gmail.com"
-        password = "Bhola_1810"
+        username = input("Input Username: ")
+        password = getpass(prompt="Enter Password: ")
 
         self.driver.get(self.url)
         time.sleep(2)
