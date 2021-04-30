@@ -83,8 +83,8 @@ class Instagram(object):
 
 
     def get_user(self):
-        # host_user = input("Enter username to scrap: ")
-        user = "ojaswita_kolhe"
+        user = input("Enter username to scrap: ")
+        # user = ""
         self.host_url = self.url + user + "/"
 
         self.driver.get(self.host_url)
