@@ -20,8 +20,8 @@ class Instagram(object):
         self.response = None
         self.chrome_path = os.path.abspath("chromedriver.exe")
         self.wait = None
-        self.maxImgDownloads = 40
-        self.maxStoryDownloads = 40
+        self.maxImgDownloads = 4000
+        self.maxStoryDownloads = 4000
         self.url = "https://www.instagram.com/"
         self.host_url = ""
         self.stories = list()
@@ -41,10 +41,9 @@ class Instagram(object):
         self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=1)
 
     def login(self):
-        # username = input("Input Username: ")
-        # password = getpass(prompt="Enter Password: ")
-        username = "2maharathikarna@gmail.com"
-        password = "Bhola_1810"
+        username = input("Input Username: ")
+        password = getpass(prompt="Enter Password: ")
+        
 
         self.driver.get(self.url)
         time.sleep(2)
@@ -85,8 +84,8 @@ class Instagram(object):
 
 
     def get_user(self):
-        # user = input("Enter username to scrap: ")
-        user = "_rucha_1104"
+        user = input("Enter username to scrap: ")
+        
         self.host_url = self.url + user + "/"
 
         self.driver.get(self.host_url)
