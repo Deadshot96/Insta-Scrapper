@@ -20,8 +20,8 @@ class Instagram(object):
         self.response = None
         self.chrome_path = os.path.abspath("chromedriver.exe")
         self.wait = None
-        self.maxImgDownloads = 1000
-        self.maxStoryDownloads = 1000
+        self.maxImgDownloads = 40
+        self.maxStoryDownloads = 40
         self.url = "https://www.instagram.com/"
         self.host_url = ""
         self.stories = list()
@@ -41,8 +41,10 @@ class Instagram(object):
         self.wait = WebDriverWait(self.driver, timeout=10, poll_frequency=1)
 
     def login(self):
-        username = input("Input Username: ")
-        password = getpass(prompt="Enter Password: ")
+        # username = input("Input Username: ")
+        # password = getpass(prompt="Enter Password: ")
+        username = "2maharathikarna@gmail.com"
+        password = "Bhola_1810"
 
         self.driver.get(self.url)
         time.sleep(2)
@@ -83,8 +85,8 @@ class Instagram(object):
 
 
     def get_user(self):
-        user = input("Enter username to scrap: ")
-        # user = ""
+        # user = input("Enter username to scrap: ")
+        user = "_rucha_1104"
         self.host_url = self.url + user + "/"
 
         self.driver.get(self.host_url)
@@ -104,11 +106,14 @@ class Instagram(object):
         self.get_images()
 
         self.get_names(self.images, "images")
+        print(os.getcwd())
+        print(self.names)
         with ThreadPoolExecutor() as executor:
             executor.map(self.get_imgs, self.names)
 
-
         self.get_names(self.stories, "stories")
+        print(os.getcwd())
+        print(self.names)
         with ThreadPoolExecutor() as executor:
             executor.map(self.get_imgs, self.names)
 
@@ -153,8 +158,20 @@ class Instagram(object):
                 print("Images: ", len(imgs))
                 for img in imgs:
                     # print(img)
-                    imgsrc = img.attrs["srcset"].split(",")[0]
-                    
+                    try:
+                        imgsrclist = img.attrs["srcset"].split(",")
+                        size1 = int(imgsrclist[0].split(" ")[-1][:-1])
+                        size2 = int(imgsrclist[1].split(" ")[-1][:-1])
+                        print(size1, size2, sep="\t")
+                        imgsrc = img.attrs["srcset"].split(",")[0]
+                    except IndexError as e:
+                        print("Size of source set :", len(imgsrclist))
+                        print(e)
+                        
+                    if size1 < size2:
+                        print("Skipping")
+                        continue
+                        
                     if len(self.stories) > self.maxStoryDownloads:
                         return 
 
