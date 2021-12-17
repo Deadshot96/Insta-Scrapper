@@ -6,4 +6,4 @@
     - selenium
     - requests
     - bs4 (BeautifulSoup)
-    - chromiun webdriver
+    - chromium webdriver
